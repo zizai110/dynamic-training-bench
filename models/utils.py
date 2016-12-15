@@ -59,13 +59,13 @@ def put_kernels_on_grid(kernel, grid_side, pad=1):
     # put NumKernels to the 1st dimension
     x2 = tf.transpose(x1, (3, 0, 1, 2))
     # organize grid on Y axis
-    x3 = tf.reshape(x2, tf.pack([grid_side, Y * grid_side, X, channels]))  #3
+    x3 = tf.reshape(x2, tf.stack([grid_side, Y * grid_side, X, channels]))  #3
 
     # switch X and Y axes
     x4 = tf.transpose(x3, (0, 2, 1, 3))
     # organize grid on X axis
     x5 = tf.reshape(x4,
-                    tf.pack([1, X * grid_side, Y * grid_side, channels]))  #3
+                    tf.stack([1, X * grid_side, Y * grid_side, channels]))  #3
 
     # back to normal order (not combining with the next step for clarity)
     x6 = tf.transpose(x5, (2, 1, 3, 0))
@@ -132,7 +132,8 @@ def conv_layer(input_x, shape, stride, padding, activation=tf.identity, wd=0.0):
 
     # log convolution result pre-activation function
     # on a single image, the first of the batch
-    conv_results = tf.split(2, shape[3], result[0])
+    conv_results = tf.split(
+        value=result[0], num_or_size_splits=shape[3], axis=2)
     grid_side = math.floor(math.sqrt(shape[3]))
 
     pre_activation = put_kernels_on_grid(
@@ -142,7 +143,7 @@ def conv_layer(input_x, shape, stride, padding, activation=tf.identity, wd=0.0):
         grid_side)
 
     # log post-activation
-    conv_results = tf.split(2, shape[3], out[0])
+    conv_results = tf.split(value=out[0], num_or_size_splits=shape[3], axis=2)
     post_activation = put_kernels_on_grid(
         tf.transpose(
             conv_results, perm=(1, 2, 3, 0))[:, :, :, 0:grid_side**2],
@@ -152,7 +153,8 @@ def conv_layer(input_x, shape, stride, padding, activation=tf.identity, wd=0.0):
     tf_log(
         tf.summary.image(
             result.name + '/pre_post_activation',
-            tf.concat(2, [pre_activation, post_activation]),
+            tf.concat_v2(
+                values=[pre_activation, post_activation], axis=2),
             max_outputs=1))
     return out
 

@@ -62,7 +62,10 @@ def train():
                 grid_side)
         tf_log(
             tf.summary.image(
-                'input_output', tf.concat(2, [inputs, outputs]), max_outputs=1))
+                'input_output',
+                tf.concat_v2(
+                    values=[inputs, outputs], axis=2),
+                max_outputs=1))
 
         # Calculate loss.
         loss = MODEL.loss(reconstructions, images)
